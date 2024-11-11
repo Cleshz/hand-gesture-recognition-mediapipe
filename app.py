@@ -15,6 +15,9 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
+import threading
+import queue
+import time
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -24,18 +27,39 @@ tello = Tello()
 tello.connect()
 print(f"Battery Life: {tello.get_battery()}%")
 
-def execute_command(command):
-    try:
-        if command == 'TakeOff':
-            tello.takeoff()
-        elif command == 'Flip':
-            tello.land()
-        elif command == 'Left':
-            tello.move_left(30)
-        elif command == 'Right':
-            tello.move_right(30)
-    except Exception as e:
-        print(f"An error occurred while executing {command}: {e}")
+command_queue = queue.Queue()
+gesture_start_time = None
+last_detected_gesture = None
+GESTURE_DURATION = 3  # seconds
+
+# Function to handle command execution in a separate thread
+def tello_command_worker():
+    while True:
+        command = command_queue.get()
+        if command is None:  
+            break
+        try:
+            print("Executing: ",command)
+            if command == 'TakeOff':
+                tello.takeoff()
+            elif command == 'Flip':
+                tello.land()
+            elif command == 'Left':
+                tello.move_left(30)
+            elif command == 'Right':
+                tello.move_right(30)
+        except Exception as e:
+            print(f"An error occurred while executing {command}: {e}")
+        finally:
+            command_queue.task_done()
+
+# Start the Tello command thread
+tello_thread = threading.Thread(target=tello_command_worker)
+tello_thread.start()
+
+# Function to enqueue commands to the Tello
+def enqueue_command(command):
+    command_queue.put(command)
 
 
 def get_args():
@@ -198,6 +222,9 @@ def main():
 
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
+        
+    command_queue.put('Land')  # Stop the Tello thread
+    tello_thread.join()
 
     cap.release()
     cv.destroyAllWindows()
@@ -513,16 +540,38 @@ def draw_bounding_rect(use_brect, image, brect):
     return image
 
 
-def draw_info_text(image, brect, handedness, hand_sign_text,
-                   finger_gesture_text):
-    cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22),
-                 (0, 0, 0), -1)
+def draw_info_text(image, brect, handedness, hand_sign_text, finger_gesture_text):
+    global gesture_start_time, last_detected_gesture
 
+    # Draw the background rectangle for info text
+    cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22), (0, 0, 0), -1)
+
+    # Display the handedness (e.g., "Left" or "Right") and hand sign text
     info_text = handedness.classification[0].label[0:]
     if hand_sign_text != "":
         info_text = info_text + ':' + hand_sign_text
-        print(hand_sign_text)
-        execute_command(hand_sign_text)
+        # print(hand_sign_text)  # Optional: Print for debugging
+
+        # Check if this is the same gesture as the previous one
+        if hand_sign_text != last_detected_gesture:
+            # New gesture detected, start timing
+            gesture_start_time = time.time()
+            last_detected_gesture = hand_sign_text
+        else:
+            # If the same gesture continues, check duration
+            if time.time() - gesture_start_time >= GESTURE_DURATION:
+                # Enqueue the command if the gesture has been held for 3 seconds
+                enqueue_command(hand_sign_text)
+                # Reset to avoid repeated enqueuing of the same command
+                gesture_start_time = None
+                last_detected_gesture = None
+    else:
+        # Reset if no hand sign text is detected
+        gesture_start_time = None
+        last_detected_gesture = None
+        
+    cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4), 
+            cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
         
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
