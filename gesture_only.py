@@ -6,7 +6,6 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
-from djitellopy import Tello
 
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -14,53 +13,10 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
-import threading
-import queue
-import time
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
-
-tello = Tello()
-tello.connect()
-print(f"Battery Life: {tello.get_battery()}%")
-
-command_queue = queue.Queue()
-gesture_start_time = None
-last_detected_gesture = None
-GESTURE_DURATION = 3  # seconds
-
-# Function to handle command execution in a separate thread
-def tello_command_worker():
-    while True:
-        command = command_queue.get()
-        if command is None:  
-            break
-        try:
-            print("Executing: ",command)
-            if command == 'TakeOff':
-                tello.takeoff()
-            elif command == 'Stop':
-                tello.land()
-            elif command == 'Left':
-                tello.move_left(30)
-            elif command == 'Right':
-                tello.move_right(30)
-            elif command == "Flip":
-                tello.flip("r")
-        except Exception as e:
-            print(f"An error occurred while executing {command}: {e}")
-        finally:
-            command_queue.task_done()
-
-# Start the Tello command thread
-tello_thread = threading.Thread(target=tello_command_worker)
-tello_thread.start()
-
-# Function to enqueue commands to the Tello
-def enqueue_command(command):
-    command_queue.put(command)
 
 
 def get_args():
@@ -223,9 +179,6 @@ def main():
 
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
-        
-    command_queue.put(None)  # Stop the Tello thread
-    tello_thread.join()
 
     cap.release()
     cv.destroyAllWindows()
@@ -444,87 +397,87 @@ def draw_landmarks(image, landmark_point):
 
     # Key Points
     for index, landmark in enumerate(landmark_point):
-        if index == 0:  
+        if index == 0:  # 手首1
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 1: 
+        if index == 1:  # 手首2
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 2:  
+        if index == 2:  # 親指：付け根
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 3:  
+        if index == 3:  # 親指：第1関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 4: 
+        if index == 4:  # 親指：指先
             cv.circle(image, (landmark[0], landmark[1]), 8, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 8, (0, 0, 0), 1)
-        if index == 5:
+        if index == 5:  # 人差指：付け根
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 6: 
+        if index == 6:  # 人差指：第2関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 7:  
+        if index == 7:  # 人差指：第1関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 8:  
+        if index == 8:  # 人差指：指先
             cv.circle(image, (landmark[0], landmark[1]), 8, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 8, (0, 0, 0), 1)
-        if index == 9: 
+        if index == 9:  # 中指：付け根
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 10:  
+        if index == 10:  # 中指：第2関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 11: 
+        if index == 11:  # 中指：第1関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 12: 
+        if index == 12:  # 中指：指先
             cv.circle(image, (landmark[0], landmark[1]), 8, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 8, (0, 0, 0), 1)
-        if index == 13:  
+        if index == 13:  # 薬指：付け根
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 14: 
+        if index == 14:  # 薬指：第2関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 15:  
+        if index == 15:  # 薬指：第1関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 16:  
+        if index == 16:  # 薬指：指先
             cv.circle(image, (landmark[0], landmark[1]), 8, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 8, (0, 0, 0), 1)
-        if index == 17:  
+        if index == 17:  # 小指：付け根
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 18: 
+        if index == 18:  # 小指：第2関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 19:  
+        if index == 19:  # 小指：第1関節
             cv.circle(image, (landmark[0], landmark[1]), 5, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 5, (0, 0, 0), 1)
-        if index == 20: 
+        if index == 20:  # 小指：指先
             cv.circle(image, (landmark[0], landmark[1]), 8, (255, 255, 255),
                       -1)
             cv.circle(image, (landmark[0], landmark[1]), 8, (0, 0, 0), 1)
@@ -541,46 +494,20 @@ def draw_bounding_rect(use_brect, image, brect):
     return image
 
 
-def draw_info_text(image, brect, handedness, hand_sign_text, finger_gesture_text):
-    global gesture_start_time, last_detected_gesture
+def draw_info_text(image, brect, handedness, hand_sign_text,
+                   finger_gesture_text):
+    cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22),
+                 (0, 0, 0), -1)
 
-    # Draw the background rectangle for info text
-    cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22), (0, 0, 0), -1)
-
-    # Display the handedness (e.g., "Left" or "Right") and hand sign text
     info_text = handedness.classification[0].label[0:]
     if hand_sign_text != "":
         info_text = info_text + ':' + hand_sign_text
-        # print(hand_sign_text)  # Optional: Print for debugging
-
-        # Check if this is the same gesture as the previous one
-        if hand_sign_text != last_detected_gesture:
-            # New gesture detected, start timing
-            gesture_start_time = time.time()
-            last_detected_gesture = hand_sign_text
-        else:
-            # If the same gesture continues, check duration
-            if time.time() - gesture_start_time >= GESTURE_DURATION:
-                # Enqueue the command if the gesture has been held for 3 seconds
-                enqueue_command(hand_sign_text)
-                # Reset to avoid repeated enqueuing of the same command
-                gesture_start_time = None
-                last_detected_gesture = None
-    else:
-        # Reset if no hand sign text is detected
-        gesture_start_time = None
-        last_detected_gesture = None
-        
-    cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4), 
-            cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
-        
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
 
     if finger_gesture_text != "":
         cv.putText(image, "Finger Gesture: Running" , (10, 60),
                    cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
-        
         # cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
         #            cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
         #            cv.LINE_AA)
