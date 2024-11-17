@@ -29,7 +29,7 @@ print(f"Battery Life: {tello.get_battery()}%")
 command_queue = queue.Queue()
 gesture_start_time = None
 last_detected_gesture = None
-GESTURE_DURATION = 3  # seconds
+GESTURE_DURATION = 2  # seconds
 
 # Function to handle command execution in a separate thread
 def tello_command_worker():
@@ -49,6 +49,14 @@ def tello_command_worker():
                 tello.move_right(30)
             elif command == "Flip":
                 tello.flip("r")
+            elif command == "Ascend":
+                tello.move_up(30)
+            elif command == "Descend":
+                tello.move_down(30)
+            elif command == "Forward":
+                tello.move_forward(30)
+            elif command == "Backward":
+                tello.move_back(30)
         except Exception as e:
             print(f"An error occurred while executing {command}: {e}")
         finally:
